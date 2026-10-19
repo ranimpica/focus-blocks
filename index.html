@@ -19,7 +19,9 @@
 html,body{height:100%}
 body{margin:0;background:var(--focus);color:var(--ink);font-family:var(--font);overflow:hidden;
   -webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;transition:background .6s}
-body.rest{background:var(--rest)}
+body.rest{background:#000}
+body.setup{background:var(--focus)}
+body:not(.setup):not(.ask):not(.end){background:#000}
 body.ask,body.end{background:var(--ask)}
 
 .fill{position:fixed;left:0;right:0;bottom:0;height:100%;background:linear-gradient(to bottom,var(--focus-fill),var(--focus) 280px);
