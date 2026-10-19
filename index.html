@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#62CB66">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Focus Blocks</title>
+<style>
+/* Layout: one full-bleed glowing screen; a liquid fill drains top to bottom as time runs; cycle dots on the right edge */
+:root{
+  --focus:#62CB66; --focus-fill:#7BE07F; --focus-edge:#A3F7A5;
+  --rest:#5AA9E6; --rest-fill:#7CC2F3; --rest-edge:#AEDDFF;
+  --ask:#2F6B35; --ink:#FFFFFF; --ink-soft:rgba(255,255,255,.75); --pill:rgba(0,0,0,.18);
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,system-ui,sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{margin:0;background:var(--focus);color:var(--ink);font-family:var(--font);overflow:hidden;
+  -webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;transition:background .6s}
+body.rest{background:var(--rest)}
+body.ask,body.end{background:var(--ask)}
+
+.fill{position:fixed;left:0;right:0;bottom:0;height:100%;background:linear-gradient(to bottom,var(--focus-fill),var(--focus) 280px);
+  transition:height 1s linear,opacity .5s;pointer-events:none}
+body.rest .fill{background:linear-gradient(to bottom,var(--rest-fill),var(--rest) 280px)}
+.fill::before{content:"";position:absolute;left:-5%;right:-5%;top:-2px;height:3px;background:var(--focus-edge);
+  box-shadow:0 0 24px 5px var(--focus-edge);border-radius:2px;animation:sway 6s ease-in-out infinite}
+body.rest .fill::before{background:var(--rest-edge);box-shadow:0 0 24px 5px var(--rest-edge)}
+@keyframes sway{0%,100%{transform:rotate(-.3deg)}50%{transform:rotate(.3deg)}}
+body.ask .fill,body.end .fill,body.setup .fill{opacity:0}
+
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));text-align:center}
+.time{font-size:clamp(5rem,26vw,9rem);font-weight:300;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1}
+.label{font-size:1.05rem;color:var(--ink-soft);font-weight:500;min-height:1.4em;max-width:28ch}
+.hint{position:fixed;left:0;right:0;bottom:calc(28px + env(safe-area-inset-bottom,0px));text-align:center;font-size:.9rem;color:var(--ink-soft);transition:opacity .4s;pointer-events:none}
+
+.dots{position:fixed;right:calc(18px + env(safe-area-inset-right,0px));top:50%;transform:translateY(-50%);
+  display:flex;flex-direction:column;gap:12px;transition:opacity .4s;pointer-events:none}
+.dots i{width:12px;height:12px;border-radius:50%;border:2px solid rgba(255,255,255,.75);box-sizing:border-box}
+.dots i.done{background:var(--ink);border-color:var(--ink)}
+.dots i.now{background:rgba(255,255,255,.5);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.35)}}
+body.setup .dots{opacity:0}
+
+.row{display:flex;align-items:center;justify-content:center;gap:22px}
+.big{font-size:clamp(4rem,20vw,6.5rem);font-weight:300;font-variant-numeric:tabular-nums;min-width:2ch;line-height:1}
+.round{width:52px;height:52px;border-radius:50%;border:none;background:var(--pill);color:var(--ink);font-size:1.6rem;cursor:pointer;font-family:var(--font)}
+.small{display:flex;gap:28px;justify-content:center;flex-wrap:wrap;margin-top:6px}
+.small > div{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:.85rem;color:var(--ink-soft)}
+.small .row{gap:12px}
+.small .round{width:36px;height:36px;font-size:1.15rem}
+.small b{font-size:1.4rem;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;min-width:2.2ch}
+.go{margin-top:22px;border:none;border-radius:99px;background:var(--ink);color:#2F6B35;font:600 1.15rem var(--font);padding:16px 52px;cursor:pointer}
+.learn{font-size:.85rem;color:var(--ink-soft);max-width:30ch;min-height:1.2em}
+
+.q{font-size:1.6rem;font-weight:500;margin-bottom:10px}
+.opts{display:flex;flex-direction:column;gap:12px;width:min(320px,100%)}
+.opts button{border:none;border-radius:18px;background:rgba(255,255,255,.14);color:var(--ink);font:500 1.2rem var(--font);padding:18px;cursor:pointer}
+.opts button:active{background:rgba(255,255,255,.3)}
+
+.ctl{position:fixed;left:0;right:0;bottom:calc(28px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;gap:12px;opacity:0;pointer-events:none;transition:opacity .3s;z-index:2}
+.ctl.show{opacity:1;pointer-events:auto}
+.ctl button{border:none;border-radius:99px;background:var(--pill);color:var(--ink);font:500 1rem var(--font);padding:12px 22px;cursor:pointer}
+.ctl.show ~ .hint{opacity:0}
+button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="fill" id="fill"></div>
+<div class="dots" id="dots"></div>
+
+<section class="screen" id="setupScr">
+  <div class="label">Cycles</div>
+  <div class="row">
+    <button class="round" id="cMinus" aria-label="Fewer cycles">−</button>
+    <div class="big" id="cVal">4</div>
+    <button class="round" id="cPlus" aria-label="More cycles">+</button>
+  </div>
+  <div class="small">
+    <div>Focus min
+      <div class="row"><button class="round" id="fMinus" aria-label="Shorter focus">−</button><b id="fVal">25</b><button class="round" id="fPlus" aria-label="Longer focus">+</button></div></div>
+    <div>Break min
+      <div class="row"><button class="round" id="bMinus" aria-label="Shorter break">−</button><b id="bVal">5</b><button class="round" id="bPlus" aria-label="Longer break">+</button></div></div>
+  </div>
+  <button class="go" id="go">Start</button>
+  <div class="learn" id="learn"></div>
+</section>
+
+<section class="screen" id="runScr" hidden>
+  <div class="time" id="time" role="timer">25:00</div>
+  <div class="label" id="lbl">Focus</div>
+</section>
+
+<section class="screen" id="askScr" hidden>
+  <div class="q">How was your focus?</div>
+  <div class="opts">
+    <button data-r="3">In the zone</button>
+    <button data-r="2">Okay</button>
+    <button data-r="1">Scattered</button>
+  </div>
+</section>
+
+<section class="screen" id="endScr" hidden>
+  <div class="q" id="endTitle">All cycles done</div>
+  <div class="label" id="endSub"></div>
+  <button class="go" id="again">New session</button>
+</section>
+
+<div class="ctl" id="ctl">
+  <button id="pauseBtn">Pause</button>
+  <button id="skipBtn">Skip</button>
+  <button id="stopBtn">End</button>
+</div>
+<div class="hint" id="hint"></div>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},
+               set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+  const fmt=s=>{s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")};
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+  // Learned settings carry over between sessions
+  let cfg=store.get("fbx_cfg",{cycles:4,f:25,b:5});
+  let note=store.get("fbx_note","");
+  let S={phase:"setup"};
+  let tick=null,wake=null,ac=null,ctlTimer=null;
+
+  function show(id){["setupScr","runScr","askScr","endScr"].forEach(x=>$(x).hidden=x!==id)}
+  function setBody(c){document.body.className=c}
+
+  function renderSetup(){$("cVal").textContent=cfg.cycles;$("fVal").textContent=cfg.f;$("bVal").textContent=cfg.b;$("learn").textContent=note}
+  const step=(k,d,a,b)=>()=>{cfg[k]=clamp(cfg[k]+d,a,b);store.set("fbx_cfg",cfg);renderSetup()};
+  $("cMinus").onclick=step("cycles",-1,1,12);$("cPlus").onclick=step("cycles",1,1,12);
+  $("fMinus").onclick=step("f",-5,5,90);$("fPlus").onclick=step("f",5,5,90);
+  $("bMinus").onclick=step("b",-1,1,30);$("bPlus").onclick=step("b",1,1,30);
+
+  function dots(){
+    $("dots").innerHTML=Array.from({length:S.cycles},(_,i)=>`<i class="${i<S.cycle?"done":(i===S.cycle&&S.phase!=="end"?"now":"")}"></i>`).join("");
+  }
+
+  function unlock(){try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();if(ac.state==="suspended")ac.resume()}catch(e){}}
+  function chime(up){
+    if(ac)(up?[523,659,784]:[784,659,523]).forEach((f,i)=>{const o=ac.createOscillator(),g=ac.createGain(),t=ac.currentTime+i*.22;
+      o.frequency.value=f;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.22,t+.02);g.gain.exponentialRampToValueAtTime(.001,t+.9);
+      o.connect(g).connect(ac.destination);o.start(t);o.stop(t+1)});
+    try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}
+  }
+  async function keepAwake(on){try{if(on&&"wakeLock"in navigator&&!wake){wake=await navigator.wakeLock.request("screen");wake.onrelease=()=>wake=null}else if(!on&&wake){await wake.release();wake=null}}catch(e){}}
+
+  const focusLabel=()=>`Cycle ${S.cycle+1} of ${S.cycles}`;
+  const restLabel="Break · stand up, drink water";
+
+  function begin(phase,min){
+    S.phase=phase;S.total=min*60;S.end=Date.now()+S.total*1000;S.paused=false;
+    setBody(phase==="focus"?"":"rest");show("runScr");
+    $("lbl").textContent=phase==="focus"?focusLabel():restLabel;
+    $("pauseBtn").textContent="Pause";$("hint").textContent="Tap for controls";
+    $("fill").style.transition="none";$("fill").style.height="100%";void $("fill").offsetHeight;$("fill").style.transition="";
+    dots();keepAwake(true);clearInterval(tick);tick=setInterval(loop,500);loop();
+  }
+  function loop(){
+    if(S.paused)return;
+    const left=(S.end-Date.now())/1000;
+    $("time").textContent=fmt(left);
+    $("fill").style.height=(clamp(left/S.total,0,1)*100)+"%";
+    document.title=fmt(left)+" · Focus Blocks";
+    if(left<=0)done();
+  }
+  function done(){
+    clearInterval(tick);hideCtl();
+    if(S.phase==="focus"){
+      const worked=Math.max(1,Math.round((S.total-Math.max(0,(S.end-Date.now())/1000))/60));
+      S.mins+=Math.min(worked,Math.round(S.total/60));
+      chime(false);S.phase="ask";setBody("ask");show("askScr");$("hint").textContent="";
+    }else if(S.phase==="rest"){
+      chime(true);S.phase="ready";$("time").textContent=fmt(S.f*60);$("fill").style.height="100%";
+      $("lbl").textContent="Break's over · tap to start";$("hint").textContent="";
+    }
+  }
+
+  // Each rating sets the next block
+  document.querySelectorAll("#askScr button").forEach(b=>b.onclick=()=>{
+    const r=+b.dataset.r;S.ratings.push(r);
+    let msg,brk=S.b;
+    if(r===3){S.f=clamp(S.f+5,5,90);msg=`In the zone. Next block: ${S.f} min`}
+    else if(r===1){S.f=clamp(S.f-5,10,90);brk=clamp(S.b+2,1,30);msg=`Shorter next: ${S.f} min. Longer break.`}
+    else msg=`Keeping ${S.f} min`;
+    cfg.f=S.f;store.set("fbx_cfg",cfg);
+    note=`Tuned from your ratings: ${S.f} min focus`;store.set("fbx_note",note);
+    S.cycle++;
+    if(S.cycle>=S.cycles){finish();return}
+    begin("rest",brk);$("lbl").textContent=msg;
+    setTimeout(()=>{if(S.phase==="rest"&&!S.paused)$("lbl").textContent=restLabel},5000);
+  });
+
+  function finish(){
+    clearInterval(tick);keepAwake(false);hideCtl();
+    const complete=S.cycle>=S.cycles;S.phase="end";setBody("end");show("endScr");dots();$("hint").textContent="";
+    const z=S.ratings.filter(r=>r===3).length;
+    $("endTitle").textContent=complete?"All cycles done":"Session ended";
+    $("endSub").textContent=`${S.cycle} cycle${S.cycle===1?"":"s"} · ${S.mins} min focused`+(z?` · ${z} in the zone`:"");
+    document.title="Focus Blocks";
+  }
+
+  function hideCtl(){$("ctl").classList.remove("show")}
+  function showCtl(){$("ctl").classList.add("show");clearTimeout(ctlTimer);ctlTimer=setTimeout(hideCtl,3500)}
+  $("runScr").addEventListener("click",()=>{
+    if(S.phase==="ready"){unlock();begin("focus",S.f);return}
+    if(S.phase==="focus"||S.phase==="rest")showCtl();
+  });
+  $("pauseBtn").onclick=e=>{e.stopPropagation();
+    if(S.paused){S.end=Date.now()+S.left*1000;S.paused=false;$("pauseBtn").textContent="Pause";$("lbl").textContent=S.phase==="focus"?focusLabel():restLabel}
+    else{S.left=(S.end-Date.now())/1000;S.paused=true;$("pauseBtn").textContent="Resume";$("lbl").textContent="Paused"}
+    showCtl()};
+  $("skipBtn").onclick=e=>{e.stopPropagation();if(S.paused){S.end=Date.now()+S.left*1000;S.paused=false}
+    if(S.phase==="focus")S.total=Math.max(60,S.total-Math.max(0,(S.end-Date.now())/1000)); // count only time actually worked
+    S.end=Date.now();
+    done()};
+  $("stopBtn").onclick=e=>{e.stopPropagation();finish()};
+
+  $("go").onclick=()=>{unlock();S={phase:"focus",cycles:cfg.cycles,cycle:0,f:cfg.f,b:cfg.b,mins:0,ratings:[]};begin("focus",S.f)};
+  $("again").onclick=()=>{S={phase:"setup"};setBody("setup");show("setupScr");renderSetup()};
+
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden&&(S.phase==="focus"||S.phase==="rest")){keepAwake(true);loop()}});
+
+  setBody("setup");renderSetup();show("setupScr");
+})();
+</script>
+</html>
