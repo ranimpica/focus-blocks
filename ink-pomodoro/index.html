@@ -595,9 +595,11 @@ bindGlobal(window);
 /* pop out into a small always-on-top window */
 let top1=false;try{top1=window.top===window}catch(e){}
 const pipOK='documentPictureInPicture' in window&&top1;
-if(pipOK)$('#pipBtn').hidden=false;
+if(pipOK&&!/Electron/.test(navigator.userAgent))$('#pipBtn').hidden=false;
 /* slim window: a small separate window that can be made very narrow */
-if(top1&&!window.opener)$('#slimBtn').hidden=false;
+const isApp=/Electron/.test(navigator.userAgent);
+if(top1&&!window.opener&&!isApp)$('#slimBtn').hidden=false;
+
 $('#slimBtn').addEventListener('click',()=>{
   save();
   const w=window.open(location.href.split('#')[0],'inkslim','popup=yes,width=300,height='+Math.max(500,screen.availHeight-60)+',left='+(screen.availWidth-320)+',top=0');
@@ -609,7 +611,7 @@ window.addEventListener('storage',e=>{
   try{const ns=JSON.parse(e.newValue);if(ns&&ns.days){store=ns;D=store.days[view]||blank();CAP=Math.max(1,Math.min(24,D.cap||store.cap||12));cellN=0;render()}}catch(err){}
 });
 let instEv=null;
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();instEv=e;$('#instBtn').hidden=false});
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();if(isApp)return;instEv=e;$('#instBtn').hidden=false});
 window.addEventListener('appinstalled',()=>{instEv=null;$('#instBtn').hidden=true});
 $('#instBtn').addEventListener('click',async()=>{if(!instEv)return;instEv.prompt();try{await instEv.userChoice}catch(e){}instEv=null;$('#instBtn').hidden=true});
 /* youtube inside the app */
