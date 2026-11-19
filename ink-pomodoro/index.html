@@ -28,6 +28,20 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 body.other #date{opacity:1;font-weight:700}
 #nav #toToday{width:auto;font-size:19px;padding:0 10px;margin-left:auto;border:2px solid var(--ink);border-radius:var(--hand);height:30px;opacity:1}
 #nav #toToday[hidden]{display:none}
+#nav #pipBtn{margin-left:auto;width:34px;opacity:.55}
+#nav #toToday:not([hidden])+#pipBtn{margin-left:6px}
+#nav #pipBtn[hidden]{display:none}
+#nav #pipBtn svg{width:22px;height:22px}
+body.pip #pipBtn{opacity:.8}
+body.pip .wrap{padding:8px 10px 96px}
+body.pip #hTime{font-size:48px}
+body.pip #hName{font-size:21px;min-height:24px}
+body.pip .btn{width:44px;height:44px}
+body.pip .bar{padding:14px 10px 10px}
+body.pip #aName{font-size:20px;height:42px;padding:4px 10px}
+body.pip .step{height:42px}body.pip #aGo{width:42px;height:42px}
+body.pip .nm{font-size:22px}
+@media (max-width:380px){.wrap{padding:10px 12px 110px}#hTime{font-size:54px}}
 #hTime small{font-size:.5em;opacity:.55}
 .btn[hidden]{display:none}
 .row.moved{cursor:default}
@@ -154,7 +168,7 @@ header{display:flex;align-items:center;gap:10px;margin-bottom:6px}
 </head>
 <body>
 <div class="wrap">
-  <div id="nav"><button id="prev" aria-label="Previous day">‹</button><span id="date"></span><button id="next" aria-label="Next day">›</button><button id="toToday" hidden>today</button></div>
+  <div id="nav"><button id="prev" aria-label="Previous day">‹</button><span id="date"></span><button id="next" aria-label="Next day">›</button><button id="toToday" hidden>today</button><button id="pipBtn" hidden aria-label="Pop out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="1.5"/><rect x="12" y="11" width="7" height="6" fill="currentColor" stroke="none"/></svg></button></div>
   <header>
     <div class="now">
       <div id="hName"></div>
@@ -187,7 +201,8 @@ header{display:flex;align-items:center;gap:10px;margin-bottom:6px}
 </div>
 <script>
 (function(){
-const $=q=>document.querySelector(q);
+let win=window,doc=document;
+const $=q=>doc.querySelector(q);
 const SQ=30, STEP=15, KEY='inkpomo.v1';
 const PLAY='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5z"/></svg>';
 const PAUSE='<svg viewBox="0 0 24 24" fill="currentColor"><rect x="5.5" y="4.5" width="4.5" height="15" rx="1"/><rect x="14" y="4.5" width="4.5" height="15" rx="1"/></svg>';
@@ -218,7 +233,10 @@ const save=()=>{
   try{localStorage.setItem(KEY2,JSON.stringify(store))}catch(e){}};
 
 let s=52;
-function sizeS(){s=Math.max(40,Math.min(60,Math.floor((window.innerHeight-330)/CAP)));document.documentElement.style.setProperty('--s',s+'px')}
+function sizeS(){
+  const b=$('#board'),bar=$('.bar'),top=b?b.getBoundingClientRect().top+win.scrollY:200;
+  const reserve=(bar?bar.offsetHeight:80)+48;
+  s=Math.max(24,Math.min(60,Math.floor((win.innerHeight-top-reserve)/CAP)));doc.documentElement.style.setProperty('--s',s+'px')}
 const now=()=>Date.now();
 const el=t=>(t.acc+(t.run?now()-t.run:0))/60000;
 const total=()=>D.tasks.reduce((a,t)=>a+t.plan,0);
@@ -425,13 +443,17 @@ function onUp(){
   drag=null;suppress=true;setTimeout(()=>suppress=false,60);
   removeDragListeners();save();update();
 }
-function addDragListeners(){window.addEventListener('pointermove',onMove,{passive:false});window.addEventListener('pointerup',onUp);window.addEventListener('pointercancel',onUp)}
-function removeDragListeners(){window.removeEventListener('pointermove',onMove);window.removeEventListener('pointerup',onUp);window.removeEventListener('pointercancel',onUp)}
-document.addEventListener('touchmove',e=>{if(drag)e.preventDefault()},{passive:false});
+function addDragListeners(){win.addEventListener('pointermove',onMove,{passive:false});win.addEventListener('pointerup',onUp);win.addEventListener('pointercancel',onUp)}
+function removeDragListeners(){win.removeEventListener('pointermove',onMove);win.removeEventListener('pointerup',onUp);win.removeEventListener('pointercancel',onUp)}
+function bindGlobal(w){
+  w.document.addEventListener('touchmove',e=>{if(drag)e.preventDefault()},{passive:false});
+  w.document.addEventListener('pointerdown',e=>{if(popFor&&!e.target.closest('#pop,.ck,#bDone,.cnt'))closePop()});
+  w.addEventListener('resize',()=>{const o=s;sizeS();if(o!==s){cellN=0;update()}});
+}
 
 function rename(t,nm){
   nm.contentEditable='true';nm.focus();
-  try{const r=document.createRange();r.selectNodeContents(nm);const sel=getSelection();sel.removeAllRanges();sel.addRange(r)}catch(e){}
+  try{const r=doc.createRange();r.selectNodeContents(nm);const sel=win.getSelection();sel.removeAllRanges();sel.addRange(r)}catch(e){}
   const done=()=>{nm.removeEventListener('blur',done);nm.removeEventListener('keydown',key);nm.contentEditable='false';
     const v=nm.textContent.replace(/\s+/g,' ').trim().slice(0,40);if(v)t.name=v;nm.textContent=t.name;save();update()};
   const key=ev=>{if(ev.key==='Enter'){ev.preventDefault();nm.blur()}if(ev.key==='Escape'){nm.textContent=t.name;nm.blur()}};
@@ -466,7 +488,6 @@ function placePop(){
 $('#pMinus').addEventListener('click',()=>{if(popMode==='size')return setPlan(Math.ceil(popVal/SQ-1e-9)*SQ-SQ);popVal=Math.max(STEP,popVal-STEP);showPop()});
 $('#pPlus').addEventListener('click',()=>{if(popMode==='size')return setPlan(Math.floor(popVal/SQ+1e-9)*SQ+SQ);popVal=Math.min(CAP*SQ,popVal+STEP);showPop()});
 $('#pOk').addEventListener('click',()=>{const t=byId(popFor),m=popMode;closePop();if(t&&m==='done')finish(t,popVal)});
-document.addEventListener('pointerdown',e=>{if(popFor&&!e.target.closest('#pop,.ck,#bDone,.cnt'))closePop()});
 
 /* actions */
 function pauseT(t){if(t&&t.run){t.acc+=now()-t.run;t.run=null}}
@@ -523,8 +544,8 @@ function navLabel(){
   const td=today(),diff=Math.round((fromIso(view)-fromIso(td))/864e5);
   $('#date').textContent=dayName(0);
   $('#toToday').hidden=diff===0;
-  document.body.classList.toggle('other',diff!==0);
-  document.body.classList.toggle('past',diff<0);
+  doc.body.classList.toggle('other',diff!==0);
+  doc.body.classList.toggle('past',diff<0);
 }
 $('#prev').addEventListener('click',()=>setView(shift(view,-1)));
 $('#next').addEventListener('click',()=>setView(shift(view,1)));
@@ -548,7 +569,29 @@ $('#add').addEventListener('submit',ev=>{
 
 navLabel();
 sizeS();
-window.addEventListener('resize',()=>{const o=s;sizeS();if(o!==s){cellN=0;update()}});
+bindGlobal(window);
+/* pop out into a small always-on-top window */
+let top1=false;try{top1=window.top===window}catch(e){}
+const pipOK='documentPictureInPicture' in window&&top1;
+if(pipOK)$('#pipBtn').hidden=false;
+$('#pipBtn').addEventListener('click',async()=>{
+  if(win!==window){win.close();return}
+  try{
+    const pw=await documentPictureInPicture.requestWindow({width:320,height:Math.min(760,screen.availHeight-80)});
+    [...document.querySelectorAll('style,link[rel="stylesheet"],link[rel="preconnect"]')].forEach(n=>pw.document.head.appendChild(n.cloneNode(true)));
+    const meta=pw.document.createElement('meta');meta.name='viewport';meta.content='width=device-width,initial-scale=1';pw.document.head.appendChild(meta);
+    pw.document.title='Ink Pomodoro';
+    pw.document.body.className=document.body.className+' pip';
+    [...document.body.children].filter(n=>n.tagName!=='SCRIPT').forEach(n=>pw.document.body.appendChild(n));
+    win=pw;doc=pw.document;document.body.classList.add('away');bindGlobal(pw);
+    pw.addEventListener('pagehide',()=>{
+      const sc=document.querySelector('body>script');[...pw.document.body.children].forEach(n=>document.body.insertBefore(n,sc));
+      document.body.className=pw.document.body.className.replace(/\bpip\b/,'').trim();
+      win=window;doc=document;cellN=0;sizeS();update();
+    });
+    cellN=0;setTimeout(()=>{sizeS();update()},50);
+  }catch(e){}
+});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){checkDay();update();if(running())wake(true)}});
 checkDay();render();
 setInterval(()=>{if(!drag){checkDay();update()}},500);
