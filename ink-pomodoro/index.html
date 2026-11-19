@@ -252,7 +252,7 @@ const save=()=>{
 let s=52;
 function sizeS(){
   const b=$('#board'),bar=$('.bar'),top=b?b.getBoundingClientRect().top+win.scrollY:200;
-  const reserve=(bar?bar.offsetHeight:80)+48;
+  const ft=$('#foot'),reserve=(bar?bar.offsetHeight:80)+(ft?ft.offsetHeight+10:40)+12;
   s=Math.max(8,Math.floor((win.innerHeight-top-reserve)/CAP));doc.documentElement.style.setProperty('--s',s+'px')}
 const now=()=>Date.now();
 const el=t=>(t.acc+(t.run?now()-t.run:0))/60000;
@@ -331,6 +331,7 @@ function overrun(){
 }
 
 function update(){
+  if(!drag){const o=s;sizeS();if(o!==s)cellN=0}
   overrun();
   const c=cur(),r=running(),pos=layout(),tot=total();
   const n=Math.max(CAP,Math.ceil(tot/SQ-1e-9));
