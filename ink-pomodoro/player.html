@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>player</title>
+<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}iframe{position:fixed;inset:0;width:100%;height:100%;border:0}</style>
+</head><body>
+<script>
+(function(){
+  var p=new URLSearchParams(location.search),src=p.get('src')||'';
+  if(!/^https:\/\/www\.youtube(-nocookie)?\.com\/embed\//.test(src))return;
+  var u=new URL(src);u.searchParams.set('origin',location.origin);u.searchParams.set('widget_referrer',location.href);u.searchParams.set('enablejsapi','1');
+  var f=document.createElement('iframe');
+  f.src=u.href;f.allow='autoplay; encrypted-media; picture-in-picture; fullscreen';f.allowFullscreen=true;f.referrerPolicy='strict-origin-when-cross-origin';
+  document.body.appendChild(f);
+})();
+</script>
+</body></html>
